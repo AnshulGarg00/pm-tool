@@ -1,6 +1,8 @@
 const Task = require("../models/Task");
 const Project = require("../models/Project");
 const Subtask = require("../models/Subtask");
+const mongoose = require("mongoose");
+const VALID_STATUSES = ["To Do", "In Progress", "Done"];
 
 // POST /api/projects/:id/tasks — admin only
 exports.createTask = async (req, res) => {
@@ -9,10 +11,17 @@ exports.createTask = async (req, res) => {
     if (!project) return res.status(404).json({ message: "Project not found" });
 
     const { title, description, assignedTo, dueDate } = req.body;
-    if (!title) return res.status(400).json({ message: "Title is required" });
+
+    if (!title || typeof title !== "string" || !title.trim()) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    if (assignedTo && !mongoose.Types.ObjectId.isValid(assignedTo)) {
+      return res.status(400).json({ message: "Invalid assignedTo user ID" });
+    }
 
     const task = await Task.create({
-      title,
+      title: title.trim(),
       description,
       assignedTo,
       dueDate,
@@ -44,6 +53,14 @@ exports.updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "No update data provided" });
+    }
+
+    if (req.body.status && !VALID_STATUSES.includes(req.body.status)) {
+      return res.status(400).json({ message: `Status must be one of: ${VALID_STATUSES.join(", ")}` });
+    }
 
     if (req.user.role === "admin") {
       Object.assign(task, req.body);

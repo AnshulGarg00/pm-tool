@@ -6,6 +6,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
+const subtaskRoutes = require("./routes/subtaskRoutes");
 
 // temporary 
 const auth = require("./middleware/auth");
@@ -27,7 +28,7 @@ app.use((err, req, res, next) => {
 
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
-
+app.use("/api/subtasks", subtaskRoutes);
 /* temporary */
 app.get("/api/test-admin", auth, requireAdmin, (req, res) => {
   res.json({ message: `Hello Admin ${req.user.id}` });

@@ -1,6 +1,7 @@
 const Project = require("../models/Project");
 const Task = require("../models/Task");
 const Subtask = require("../models/Subtask");
+const mongoose = require("mongoose");
 
 // GET /api/projects — role-filtered
 exports.getProjects = async (req, res) => {
@@ -43,10 +44,24 @@ exports.getProjectById = async (req, res) => {
 exports.createProject = async (req, res) => {
   try {
     const { title, description, members } = req.body;
-    if (!title) return res.status(400).json({ message: "Title is required" });
+
+    if (!title || typeof title !== "string" || !title.trim()) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    if (members !== undefined) {
+      if (!Array.isArray(members)) {
+        return res.status(400).json({ message: "Members must be an array of user IDs" });
+      }
+      for (const memberId of members) {
+        if (!mongoose.Types.ObjectId.isValid(memberId)) {
+          return res.status(400).json({ message: `Invalid member ID: ${memberId}` });
+        }
+      }
+    }
 
     const project = await Project.create({
-      title,
+      title: title.trim(),
       description,
       createdBy: req.user.id,
       members: members || []
@@ -59,14 +74,29 @@ exports.createProject = async (req, res) => {
 };
 
 // PUT /api/projects/:id — admin only
+// PUT /api/projects/:id — admin only
 exports.updateProject = async (req, res) => {
   try {
-    const project = await Project.findByIdAndUpdate(req.params.id, req.body, {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "No update data provided" });
+    }
+
+    if (req.body.title !== undefined) {
+      if (typeof req.body.title !== "string" || !req.body.title.trim()) {
+        return res.status(400).json({ message: "Title cannot be empty" });
+      }
+      req.body.title = req.body.title.trim();
+    }
+
+    const updated = await Project.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     });
-    if (!project) return res.status(404).json({ message: "Project not found" });
-    res.json(project);
+
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
