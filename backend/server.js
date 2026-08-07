@@ -4,12 +4,14 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
+const projectRoutes = require("./routes/projectRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 
 // temporary 
 const auth = require("./middleware/auth");
 const { requireAdmin } = require("./middleware/roles");
 
-// temporary //
+// temporary */
 
 const app = express();
 app.use(cors());
@@ -23,7 +25,10 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || "Server error" });
 });
 
-/* temporary  */
+app.use("/api/projects", projectRoutes);
+app.use("/api/tasks", taskRoutes);
+
+/* temporary */
 app.get("/api/test-admin", auth, requireAdmin, (req, res) => {
   res.json({ message: `Hello Admin ${req.user.id}` });
 });
